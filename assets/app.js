@@ -10,7 +10,7 @@ function drawFTA() {
   const useTanh = $('tanh1').checked, z = useTanh ? Math.tanh(z0) : z0;
   const lo = -u, hi = u, { delta, c } = tiles(lo, hi, k), eta = eFrac * delta, out = fta(z, lo, hi, k, eta);
   $('zVal').textContent = z0.toFixed(2); $('uVal').textContent = u; $('kVal').textContent = k; $('eVal').textContent = eFrac.toFixed(2);
-  const W = 900, pad = 40, axisY = 70, span = Math.max(u * 1.3, Math.min(3.2, Math.abs(z) * 1.15 + 0.1)), x = v => pad + ((v + span) / (2 * span)) * (W - 2 * pad);
+  const W = matchMedia('(max-width: 560px)').matches ? 440 : 900, pad = W < 600 ? 22 : 40, axisY = 70, span = Math.max(u * 1.3, Math.min(3.2, Math.abs(z) * 1.15 + 0.1)), x = v => pad + ((v + span) / (2 * span)) * (W - 2 * pad);
   const blue = css('--blue'), muted = css('--muted'), line = css('--line'), ink = css('--ink'), orange = css('--orange');
   let s = `<line x1="${pad}" x2="${W - pad}" y1="${axisY}" y2="${axisY}" stroke="${line}" stroke-width="2"/>`;
   c.forEach((ci, i) => {
@@ -29,6 +29,7 @@ function drawFTA() {
     s += `<rect x="${bx}" y="${base - h}" width="${bw}" height="${Math.max(h, 1)}" rx="2" fill="${a > 0 ? blue : line}"/>`;
     if (a > 0) s += `<text x="${bx + bw / 2}" y="${base - h - 4}" text-anchor="middle" font-size="10" fill="${ink}">${a.toFixed(2)}</text>`;
   });
+  $('ftaViz').setAttribute('viewBox', `0 0 ${W} 240`);
   $('ftaViz').innerHTML = s;
   const active = out.filter(v => v > 0).length, outside = z < lo || z > hi;
   $('ftaNote').innerHTML = outside
@@ -78,7 +79,7 @@ const VIEWS = {
   cartpole: [['all', 'All'], ['plain', 'Plain FTA'], ['tanh', 'tanh + FTA']],
   lunarlander: [['all', 'All'], ['bound', 'Plain FTA by bound'], ['fix', 'tanh fix'], ['base', 'Against ReLU']],
 };
-const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#8a5cd0', '#d6a72a', '#d23a7a', '#4a4a4a', '#16a3b8', '#8c6d3a'];
+const PALETTE = ['#ff4400', '#ffb347', '#37d3a2', '#8ab4ff', '#d68cff', '#ff6fa8', '#c9c9d1', '#39c0e0', '#e0c341'];
 function pick(label) {
   if (exp === 'cartpole') return view === 'all' || (view === 'tanh') === label.includes('tanh');
   if (view === 'all') return true;
@@ -110,9 +111,10 @@ function drawResults() {
 async function main() {
   if (typeof Chart !== 'undefined') { Chart.defaults.font.family = css('--sans'); Chart.defaults.color = css('--muted'); Chart.defaults.borderColor = css('--line'); }
   ['z', 'u', 'k', 'e', 'tanh1'].forEach(id => $(id).addEventListener('input', drawFTA)); drawFTA();
+  matchMedia('(max-width: 560px)').addEventListener('change', drawFTA);
   ['s', 'b'].forEach(id => $(id).addEventListener('input', drawBound)); drawBound();
   drawFig();
-  try { const r = await fetch('results/summary.json'); if (!r.ok) throw 0; data = await r.json(); } catch { $('resHead').closest('section').hidden = true; return; }
+  try { const r = await fetch('results/summary.json'); if (!r.ok) throw 0; data = await r.json(); } catch { $('rerun').hidden = true; return; }
   $('resIntro').textContent = data.intro;
   $('expChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { exp = b.dataset.exp; view = 'all'; $('expChips').querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawResults(); });
   drawResults();
