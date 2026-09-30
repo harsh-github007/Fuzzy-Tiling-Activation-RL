@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fuzzy Tiling Activation, Explained</title>
+  <meta name="description" content="An interactive explainer of 'Investigate the Properties of FTA Through Empirical Experimentation' (ETTIS 2024, Springer): what fuzzy tiling activation is, why its tiling bound matters, and how tanh normalisation removes the need to tune it.">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232a78d6'/><rect x='6' y='18' width='4' height='8' fill='white' opacity='.5'/><rect x='12' y='8' width='4' height='18' fill='white'/><rect x='18' y='14' width='4' height='12' fill='white' opacity='.7'/><rect x='24' y='22' width='2' height='4' fill='white' opacity='.4'/></svg>">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <span class="tag">ETTIS 2024 · Springer Lecture Notes in Networks and Systems</span>
+      <h1 style="margin-top:10px">Fuzzy Tiling Activation, Explained</h1>
+      <p class="lede">A walk-through of <i>Investigate the Properties of FTA Through Empirical Experimentation</i> by Harsh Raj and Dilshad Shaik. One finding in one sentence: <b>putting a tanh in front of a fuzzy tiling activation removes the need to hand-tune its tiling bound.</b></p>
+      <div class="hero-links">
+        <a class="btn primary" href="https://link.springer.com/chapter/10.1007/978-981-97-5703-9_10">Read the paper</a>
+        <a class="btn" href="paper/preprint.pdf">Preprint (PDF)</a>
+        <a class="btn" href="https://github.com/harsh-github007/Fuzzy-Tiling-Activation-RL">Code and results</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel prose" aria-labelledby="whyHead">
+      <h2 id="whyHead">The problem: learning one thing makes a network forget another</h2>
+      <p>A neural network learns by adjusting shared weights. When it learns from a stream of experience, as a reinforcement-learning agent does, an update that helps with today's situation can quietly damage what it learned about yesterday's. This is called <b>interference</b>.</p>
+      <p>Interference is worst when every input lights up most of the network's neurons (a <i>dense</i> representation). If each input used only a few neurons (a <i>sparse</i> one), updates for one input would mostly leave the others alone.</p>
+      <p><b>Fuzzy tiling activation (FTA)</b>, proposed by Pan, White and White, makes a layer sparse by design. The catch, which this paper tackles, is that it only works well if one number, the <b>tiling bound</b>, is set right.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="ftaHead">
+      <h2 id="ftaHead">How FTA works: try it</h2>
+      <p class="muted small prose">An ordinary activation such as ReLU turns each number into another number. FTA turns each number <b>z</b> into a short vector of <b>k</b> tiles. It splits the range from <b>−u</b> to <b>u</b> into k equal tiles and lights up the tile z falls in. Tiles just outside z light up partly, fading over a distance <b>η</b> (the "fuzzy" part), which lets the network keep learning through them.</p>
+      <div class="inputs">
+        <label>Input z = <span class="val" id="zVal"></span><input id="z" type="range" min="-3" max="3" step="0.01" value="0.37"></label>
+        <label>Tiling bound u = <span class="val" id="uVal"></span><input id="u" type="range" min="0" max="6" step="1" value="2"></label>
+        <label>Tiles k = <span class="val" id="kVal"></span><input id="k" type="range" min="4" max="24" step="1" value="8"></label>
+        <label>Fuzziness η (share of a tile) = <span class="val" id="eVal"></span><input id="e" type="range" min="0" max="1" step="0.05" value="1"></label>
+      </div>
+      <label class="toggle"><input type="checkbox" id="tanh1"> Pass z through tanh first (the paper's fix)</label>
+      <svg class="viz" id="ftaViz" viewBox="0 0 900 240" role="img" aria-label="Tiles of the fuzzy tiling activation and their outputs"></svg>
+      <p class="result" id="ftaNote"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="boundHead">
+      <h2 id="boundHead">Why the tiling bound matters</h2>
+      <p class="muted small prose">In a real network, the inputs to FTA are the outputs of the layer before it, and nobody knows their range in advance. Below, a layer produces 64 values with a spread you can change. Pick a tiling bound for plain FTA and see how many of its 20 tiles those values actually use; the right-hand card always uses tanh with u = 1. Unused tiles are wasted neurons; if all values crowd into one or two tiles, FTA stops separating inputs.</p>
+      <div class="inputs">
+        <label>Spread of the layer's outputs (standard deviation) = <span class="val" id="sVal"></span><input id="s" type="range" min="-2" max="2" step="0.1" value="0"></label>
+        <label>Tiling bound u = <span class="val" id="bVal"></span><select id="b"><option>0.01</option><option>0.1</option><option selected>1</option><option>10</option><option>20</option><option>100</option></select></label>
+      </div>
+      <div class="pair">
+        <div class="card"><span class="muted small">Plain FTA: tiles used</span><div class="big" id="usedPlain"></div><svg class="viz" id="stripPlain" viewBox="0 0 400 40" aria-label="Tiles used without tanh"></svg></div>
+        <div class="card"><span class="muted small">tanh, then FTA with u = 1: tiles used</span><div class="big" id="usedTanh"></div><svg class="viz" id="stripTanh" viewBox="0 0 400 40" aria-label="Tiles used with tanh"></svg></div>
+      </div>
+      <p class="result" id="boundNote"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="studyHead">
+      <h2 id="studyHead">What the paper did</h2>
+      <div class="steps">
+        <div class="step"><b>Reproduced the original result</b><span class="muted small">A deep Q-network (DQN) learns to land a rocket in LunarLander. With FTA in its last hidden layer and u = 20, it did about as well as the original FTA paper reported.</span></div>
+        <div class="step"><b>Showed FTA is fragile</b><span class="muted small">Sweeping u from 0.1 to 100: FTA did best near u = 1 and badly when u was too big or too small. The best u also differed between LunarLander and CartPole, so it has to be searched for each task.</span></div>
+        <div class="step"><b>Found a fix</b><span class="muted small">Putting tanh, Batch Norm or Range Norm in front of FTA. Only tanh worked at every bound tested in LunarLander. It also fixed the bad bounds in CartPole, and its results were the most consistent across random seeds.</span></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="figHead">
+      <h2 id="figHead">The paper's results</h2>
+      <p class="muted small prose">The six figures from the paper. LunarLander runs last 500,000 steps and are averaged over 10 runs; shaded bands are 95% confidence intervals.</p>
+      <div class="chips" role="group" aria-label="Figure" id="figChips"></div>
+      <figure style="margin:0"><img id="figImg" alt="" style="width:100%;height:auto;background:#fff;border-radius:8px;border:1px solid var(--line)"></figure>
+      <p class="result" id="figNote"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="resHead">
+      <h2 id="resHead">Re-running it</h2>
+      <p class="muted small prose" id="resIntro">The experiments were re-run from scratch for this page with the code in the repository, at a smaller scale than the paper. Shaded bands are 95% confidence intervals across random seeds.</p>
+      <div class="chips" role="group" aria-label="Experiment" id="expChips">
+        <button class="chip" data-exp="cartpole" aria-pressed="true">CartPole</button>
+        <button class="chip" data-exp="lunarlander" aria-pressed="false">LunarLander</button>
+      </div>
+      <div class="chips" role="group" aria-label="Agents" id="viewChips"></div>
+      <div class="chart"><canvas id="resChart" aria-label="Learning curves"></canvas></div>
+      <p class="result" id="resNote"></p>
+    </section>
+
+    <section class="panel prose" aria-labelledby="takeHead">
+      <h2 id="takeHead">Why this matters</h2>
+      <p>Every hyperparameter an algorithm needs is a search someone has to run, in compute and time, for every new task. FTA's tiling bound was one of those. Because tanh squeezes every value into the range −1 to 1, a bound of u = 1 always covers the inputs, and the network can learn to spread its values across the tiles itself. The result is a sparse activation that works out of the box.</p>
+      <p class="muted small">Limits: the paper tested two environments and one algorithm (DQN), with 10 runs per agent. Whether tanh-normalised FTA holds up in more tasks is open.</p>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <span>Harsh Raj and Dilshad Shaik, ETTIS 2024. Explainer and re-run by Harsh Raj.</span>
+    <a href="https://github.com/harsh-github007/Fuzzy-Tiling-Activation-RL">Code on GitHub</a>
+  </footer>
+
+  <script src="assets/vendor/chart.umd.js"></script>
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

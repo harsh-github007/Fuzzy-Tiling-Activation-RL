@@ -1,0 +1,1 @@
+{ "name": "fuzzy-tiling-activation-rl", "private": true, "type": "module", "scripts": { "test": "node --test tests/fta.test.mjs" } }
