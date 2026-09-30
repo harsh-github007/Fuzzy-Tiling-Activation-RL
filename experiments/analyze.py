@@ -43,8 +43,8 @@ def main():
     lines = ["# Results", "", "Re-run of the experiments in Raj and Shaik (ETTIS 2024) at reduced scale. "
              "Final return = each seed's mean over the last fifth of training, averaged across seeds, with a 95% t interval.", ""]
     notes = {
-        "cartpole": ("Return per episode (max 500)", "CartPole: plain FTA's result depends on the tiling bound; with tanh in front, every bound does about equally well."),
-        "lunarlander": ("Return per episode", "LunarLander (100k steps, a fifth of the paper's 500k): early learning, where the agents are still far from landing reliably."),
+        "cartpole": ("Return per episode (max 500)", "CartPole (50k steps, 5 seeds): u = 1 is best with or without tanh (about 450 of 500), and tanh narrows the spread across seeds there. At u = 0.01 and u = 100, tanh did not help at this scale."),
+        "lunarlander": ("Return per episode", "LunarLander (100k steps, a fifth of the paper's 500k; 3 seeds): u = 1 is best, with or without tanh, and tanh again gives a tighter interval. Agents are still early in learning, and the intervals overlap widely."),
     }
     for exp, agents in runs.items():
         labels = sorted(agents, key=lambda l: ORDER.index(l) if l in ORDER else 99)

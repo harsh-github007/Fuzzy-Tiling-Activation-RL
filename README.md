@@ -40,7 +40,27 @@ Every experiment in the paper is written out in [`experiments/configs.py`](exper
 - **CartPole:** 50,000 steps and 5 seeds.
 - **LunarLander:** 100,000 steps and 3 seeds.
 
-The re-run is in progress. Its tables will go in `results/results.md` and its charts in `results/`.
+Full tables are in [`results/results.md`](results/results.md). Final return is each seed's mean over the last fifth of training, averaged across seeds, with a 95% t interval.
+
+| Agent | CartPole | LunarLander |
+| --- | ---: | ---: |
+| DQN-FTA (u=1) | 450.8 ± 63.1 | 50.2 ± 230.7 |
+| DQN-FTA-tanh (u=1) | 453.2 ± 38.8 | −6.6 ± 101.0 |
+| DQN-FTA (u=100) | 439.5 ± 91.0 | −122.3 ± 153.9 |
+| DQN-FTA-tanh (u=100) | 337.3 ± 137.8 | −132.1 ± 124.4 |
+| DQN-FTA (u=0.01) | 296.3 ± 90.6 | −167.4 ± 136.2 |
+| DQN-FTA-tanh (u=0.01) | 242.4 ± 81.4 | −169.3 ± 45.5 |
+| DQN-FTA (u=20) | | −138.3 ± 21.6 |
+| DQN | | −131.3 ± 101.2 |
+| DQN-Large | | −84.9 ± 63.5 |
+
+![CartPole learning curves](results/cartpole.png)
+![LunarLander learning curves](results/lunarlander.png)
+
+**What the re-run shows:**
+- **Agreement with the paper:** u = 1 is the best bound in both environments, FTA at u = 1 beats plain DQN and DQN-Large on LunarLander, and tanh gives tighter intervals across seeds at u = 1.
+- **Not reproduced at this scale:** tanh did not rescue the bad bounds (u = 0.01 and u = 100).
+- **Caveat:** these runs are much shorter and use fewer seeds than the paper's, so LunarLander agents are still early in learning and most intervals overlap. The full-scale settings are in `paper()` in `experiments/configs.py`.
 
 ## Code
 
@@ -57,7 +77,7 @@ The re-run is in progress. Its tables will go in `results/results.md` and its ch
 ```bash
 pip install torch "gymnasium[box2d]" scipy matplotlib pytest
 pytest tests                                   # FTA layer tests, including the paper's worked examples
-python experiments/run.py quick                # reduced-scale re-run (about 1.5 hours on 2 CPU cores)
+python experiments/run.py quick                # reduced-scale re-run (about 20 minutes on 8 CPU cores)
 python experiments/run.py paper cartpole       # one full-scale experiment from the paper
 python experiments/analyze.py                  # tables and charts
 npm test                                       # the explainer's JavaScript FTA
